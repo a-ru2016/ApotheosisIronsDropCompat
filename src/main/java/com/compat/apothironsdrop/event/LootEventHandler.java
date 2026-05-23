@@ -11,7 +11,10 @@ import io.redspace.ironsspellbooks.api.spells.AbstractSpell;
 import io.redspace.ironsspellbooks.api.spells.ISpellContainer;
 import io.redspace.ironsspellbooks.registries.ItemRegistry;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.TagKey;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
@@ -25,6 +28,7 @@ import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 
 @EventBusSubscriber(modid = "apoth_irons_drop")
@@ -70,6 +74,52 @@ public class LootEventHandler {
         // 1. Apotheosis Affix Equipment Drop Logic
         if (random.nextDouble() < config.affixDropChance) {
             List<Item> pool = getAffixableItems();
+
+            // affixItemTags または affixItemMods が指定されている場合、OR条件で絞り込む
+            boolean hasTagFilter = config.affixItemTags != null && !config.affixItemTags.isEmpty();
+            boolean hasModFilter = config.affixItemMods != null && !config.affixItemMods.isEmpty();
+            if (hasTagFilter || hasModFilter) {
+                List<Item> filteredPool = new ArrayList<>();
+                for (Item item : pool) {
+                    boolean matched = false;
+
+                    // Mod IDによる判定
+                    if (!matched && hasModFilter) {
+                        var key = BuiltInRegistries.ITEM.getKey(item);
+                        if (key != null) {
+                            String itemNamespace = key.getNamespace().toLowerCase(Locale.ROOT);
+                            for (String modId : config.affixItemMods) {
+                                if (modId.trim().toLowerCase(Locale.ROOT).equals(itemNamespace)) {
+                                    matched = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // アイテムタグによる判定
+                    if (!matched && hasTagFilter) {
+                        ItemStack stack = new ItemStack(item);
+                        for (String tagStr : config.affixItemTags) {
+                            try {
+                                TagKey<Item> tagKey = TagKey.create(Registries.ITEM, ResourceLocation.parse(tagStr));
+                                if (stack.is(tagKey)) {
+                                    matched = true;
+                                    break;
+                                }
+                            } catch (Exception ignored) {
+                                // 無効なタグやResourceLocationはスキップ
+                            }
+                        }
+                    }
+
+                    if (matched) {
+                        filteredPool.add(item);
+                    }
+                }
+                pool = filteredPool;
+            }
+
             if (!pool.isEmpty()) {
                 Item randomItem = pool.get(random.nextInt(pool.size()));
                 ItemStack itemStack = new ItemStack(randomItem);

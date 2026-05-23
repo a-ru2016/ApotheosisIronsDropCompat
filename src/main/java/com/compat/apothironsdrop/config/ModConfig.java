@@ -9,6 +9,8 @@ import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ModConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -18,6 +20,19 @@ public class ModConfig {
     public double affixDropChance = 0.05; // 5% chance
     public double scrollDropChance = 0.08; // 8% chance
     public boolean playerKillOnly = true;
+    /**
+     * ドロップするアフィックス装備のアイテムタグ一覧。
+     * 空の場合はすべてのアフィックス付与可能アイテムが対象になります。
+     * 例: ["minecraft:swords", "minecraft:axes"]
+     */
+    public List<String> affixItemTags = new ArrayList<>();
+    /**
+     * ドロップするアフィックス装備のMod ID一覧。
+     * タグ指定と合わせてOR条件で動作します（どちらかに一致すればドロップ候補になります）。
+     * 空の場合はMod IDによる絞り込みは行いません。
+     * 例: ["minecraft", "simplyswords"]
+     */
+    public List<String> affixItemMods = new ArrayList<>();
 
     public ModConfig() {
     }
